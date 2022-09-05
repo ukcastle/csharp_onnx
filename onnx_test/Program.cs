@@ -18,8 +18,10 @@ namespace onnx_test
         {
             Onnx_MMpose onnxPose = new Onnx_MMpose("C:\\Users\\Admin\\Documents\\output.onnx", 192, 256);
 
-            Mat src = Cv2.ImRead("C:\\Users\\Admin\\Documents\\3326.jpg", ImreadModes.Color);
-            var inputMat = onnxPose.MakeLetterBoxByMat(ref src, out float ratio, out Point diff, out Point diff2, auto:false, scaleFill:false);
+            //Mat src = Cv2.ImRead("C:\\Users\\Admin\\Documents\\3326.jpg", ImreadModes.Color);
+            //var inputMat = onnxPose.MakeInputMat(ref src, out float ratio, out Point diff, out Point diff2, auto:false, scaleFill:false);
+
+            var inputMat = onnxPose.MakeInputMat("C:\\Users\\Admin\\Documents\\3326.jpg", out Mat src, out float ratio, out Point diff, out Point diff2);
             var results = onnxPose.ModelRun(ref inputMat); // 1(N) * 17(C) * 64(H) * 48(W)
 
             var predValue = results[0].AsEnumerable<float>().ToArray(); // 1 17 64 48

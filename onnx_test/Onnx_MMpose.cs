@@ -76,6 +76,8 @@ namespace onnx_test
             this.keyPointLength = System.Enum.GetValues(typeof(KeyPoint)).Length;
         }
         
+       
+
         public DisposableNamedOnnxValue[] ModelRun(ref Mat inputMat)
         {
             Mat mat = new Mat();
@@ -86,8 +88,7 @@ namespace onnx_test
             };
             return this.sess.Run(onnxInput).ToArray();
         }
-
-        //public DisposableNamedOnnxValue[] ModelRun(string imgName)
+        
 
         private unsafe static float[] Mat2Array(Mat mat)
         {
@@ -114,7 +115,7 @@ namespace onnx_test
             return array;
         }
 
-        public Mat MakeLetterBoxByMat(ref Mat input, out float ratio, out Point diff, out Point diff2, bool auto = true, bool scaleFill = false, bool isScaleUp = true)
+        public Mat MakeInputMat(ref Mat input, out float ratio, out Point diff, out Point diff2, bool auto = true, bool scaleFill = false, bool isScaleUp = true)
         {
             Mat img = input.Clone();
             //Cv2.CvtColor(img, img, ColorConversionCodes.RGB2BGR);
@@ -167,6 +168,12 @@ namespace onnx_test
             diff = new Point(dW_h, dH_h);
             diff2 = new Point(dw2, dh2);
             return img;
+        }
+
+        public Mat MakeInputMat(string inputPath, out Mat srcMat, out float ratio, out Point diff, out Point diff2)
+        {
+            srcMat = Cv2.ImRead(inputPath, ImreadModes.Color);
+            return this.MakeInputMat(ref srcMat, out ratio, out diff, out diff2, auto: false, scaleFill: false);
         }
 
         public List<List<float>> FitSizeofOutput(ref List<List<List<float>>> output, ref float ratio, ref Point diff, ref Point diff2, int batchIdx = 0)
