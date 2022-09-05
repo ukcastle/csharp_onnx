@@ -53,10 +53,11 @@ namespace onnx_test
             RightAnkle
         }
         private readonly InferenceSession sess;
-        private Size size;
-        private Scalar backgroundColor;
+        private readonly Size size;
+        private readonly Scalar backgroundColor;
+        private readonly int keyPointLength;
 
-        public Onnx_MMpose(string onnxPath, int width, int height, int color = 114)
+        public Onnx_MMpose(string onnxPath, int width, int height, int backgroundColor = 114)
         {
             if (string.IsNullOrWhiteSpace(onnxPath))
             {
@@ -71,7 +72,8 @@ namespace onnx_test
             
             this.sess = new InferenceSession(onnxPath, option);
             this.size = new Size(width, height);
-            this.backgroundColor = new Scalar(color, color, color);
+            this.backgroundColor = new Scalar(backgroundColor, backgroundColor, backgroundColor);
+            this.keyPointLength = System.Enum.GetValues(typeof(KeyPoint)).Length;
         }
         
         public DisposableNamedOnnxValue[] ModelRun(ref Mat inputMat)
@@ -84,6 +86,8 @@ namespace onnx_test
             };
             return this.sess.Run(onnxInput).ToArray();
         }
+
+        //public DisposableNamedOnnxValue[] ModelRun(string imgName)
 
         private unsafe static float[] Mat2Array(Mat mat)
         {
@@ -163,6 +167,41 @@ namespace onnx_test
             diff = new Point(dW_h, dH_h);
             diff2 = new Point(dw2, dh2);
             return img;
+        }
+
+        public List<List<float>> FitSizeofOutput(ref List<List<List<float>>> output, ref float ratio, ref Point diff, ref Point diff2, int batchIdx = 0)
+        {
+            var outputList = new List<List<float>>();
+
+            for (int i=0; i< this.keyPointLength; i++)
+            {
+                var curOutput = output[batchIdx][i];
+                int fitX = (int)(Math.Max(curOutput[0] - diff.X, 0) / ratio);
+                int fitY = (int)(Math.Max(curOutput[1] - diff.Y, 0) / ratio);
+
+                outputList.Add(new List<float> { fitX, fitY, curOutput[2] });
+            }
+
+            return outputList;
+        }
+
+        public Mat DrawOutput(ref Mat inputMat, List<List<float>> output)
+        {
+            Mat outputMat = inputMat.Clone();
+
+            for (int i = 0; i < this.keyPointLength; i++)
+            {
+                int startIdx = Onnx_MMpose.skeleton[i, 0];
+                int endIdx = Onnx_MMpose.skeleton[i, 1];
+                Scalar color = new Scalar(skeleton[i, 2], skeleton[i, 3], skeleton[i, 4]);
+
+                Point start = new Point(output[startIdx][0], output[startIdx][1]);
+                Point end = new Point(output[endIdx][0], output[endIdx][1]);
+
+                Cv2.Line(outputMat, start, end, color);
+            }
+
+            return outputMat;
         }
     }
 }
