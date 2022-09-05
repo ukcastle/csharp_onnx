@@ -12,6 +12,7 @@ namespace onnx_test
 {
     class Onnx_MMpose
     {
+        // Member
         private static readonly int[,] skeleton = new int[17, 5]
         {
             { 15, 13, 255, 128, 0 }, // Left Ankle - Left Knee
@@ -57,6 +58,7 @@ namespace onnx_test
         private readonly Scalar backgroundColor;
         private readonly int keyPointLength;
 
+        // Constructor
         public Onnx_MMpose(string onnxPath, int width, int height, int backgroundColor = 114)
         {
             if (string.IsNullOrWhiteSpace(onnxPath))
@@ -75,46 +77,8 @@ namespace onnx_test
             this.backgroundColor = new Scalar(backgroundColor, backgroundColor, backgroundColor);
             this.keyPointLength = System.Enum.GetValues(typeof(KeyPoint)).Length;
         }
-        
-       
 
-        public DisposableNamedOnnxValue[] ModelRun(ref Mat inputMat)
-        {
-            Mat mat = new Mat();
-            inputMat.ConvertTo(mat, MatType.CV_32FC3, (float)(1 / 255.0)); // 아직 normalize 안했음 
-            var onnxInput = new List<NamedOnnxValue>
-            {
-                NamedOnnxValue.CreateFromTensor("input.1", new DenseTensor<float>(Onnx_MMpose.Mat2Array(mat), new[] { 1, 3, mat.Height, mat.Width }))
-            };
-            return this.sess.Run(onnxInput).ToArray();
-        }
-        
-
-        private unsafe static float[] Mat2Array(Mat mat)
-        {
-            var imgHeight = mat.Height;
-            var imgWidth = mat.Width;
-            var imgChannel = mat.Channels();
-
-            float* matPointer = (float*)mat.DataPointer;
-
-            float[] array = new float[imgHeight * imgWidth * imgChannel]; // H * W * C
-
-            for (int y = 0; y < imgHeight; y++)
-            {
-                for (int x = 0; x < imgWidth; x++)
-                {
-                    for (int c = 0; c < imgChannel; c++)
-                    {
-                        var baseIdx = (y * imgChannel) * imgWidth + (x * imgChannel) + imgChannel;
-                        var convertedIdx = (c * imgWidth) * imgHeight + (y * imgWidth) + x;
-                        array[convertedIdx] = matPointer[baseIdx];
-                    }
-                }
-            }
-            return array;
-        }
-
+        // Public APIs
         public Mat MakeInputMat(ref Mat input, out float ratio, out Point diff, out Point diff2, bool auto = true, bool scaleFill = false, bool isScaleUp = true)
         {
             Mat img = input.Clone();
@@ -176,20 +140,15 @@ namespace onnx_test
             return this.MakeInputMat(ref srcMat, out ratio, out diff, out diff2, auto: false, scaleFill: false);
         }
 
-        public List<List<float>> FitSizeofOutput(ref List<List<List<float>>> output, ref float ratio, ref Point diff, ref Point diff2, int batchIdx = 0)
+        public DisposableNamedOnnxValue[] ModelRun(ref Mat inputMat)
         {
-            var outputList = new List<List<float>>();
-
-            for (int i=0; i< this.keyPointLength; i++)
+            Mat mat = new Mat();
+            inputMat.ConvertTo(mat, MatType.CV_32FC3, (float)(1 / 255.0)); // 아직 normalize 안했음 
+            var onnxInput = new List<NamedOnnxValue>
             {
-                var curOutput = output[batchIdx][i];
-                int fitX = (int)(Math.Max(curOutput[0] - diff.X, 0) / ratio);
-                int fitY = (int)(Math.Max(curOutput[1] - diff.Y, 0) / ratio);
-
-                outputList.Add(new List<float> { fitX, fitY, curOutput[2] });
-            }
-
-            return outputList;
+                NamedOnnxValue.CreateFromTensor("input.1", new DenseTensor<float>(Onnx_MMpose.Mat2Array(mat), new[] { 1, 3, mat.Height, mat.Width }))
+            };
+            return this.sess.Run(onnxInput).ToArray();
         }
 
         public Mat DrawOutput(ref Mat inputMat, List<List<float>> output)
@@ -210,5 +169,127 @@ namespace onnx_test
 
             return outputMat;
         }
+
+        public List<List<float>> PostProcess(
+            DisposableNamedOnnxValue[] output, ref float ratio, ref Point diff, ref Point diff2,  int imgWidth, int imgHegiht, int bboxX = 0, int bboxY = 0, int batchIdx = 0)
+        {
+            var predValue = output[0].AsEnumerable<float>().ToArray(); // 1 17 64 48
+            var predDims = output[0].AsTensor<float>().Dimensions.ToArray(); // 1 17 64 48
+
+            var keyPointsBatch = new List<List<List<float>>>(); // batch * 17(key) * 3(x,y,pred)
+
+            int scaleX = imgWidth / predDims[3];
+            int scaleY = imgHegiht / predDims[2];
+
+            for (int batch = 0; batch < predDims[0]; batch++)
+            {
+                var keyPoints = new List<List<float>>(); // 17(key) * 3(x,y,pred)
+
+                for (int key = 0; key < predDims[1]; key++)
+                {
+                    int idx1 = batch * predDims[1] * predDims[2] * predDims[3]; //사실 0만나옴
+                    int idx2 = key * predDims[2] * predDims[3];
+                    var keyValue = Onnx_MMpose.Heatmap2KeyPoint(predValue, idx1 + idx2, predDims[2], predDims[3]); // 3(x,y,pred);
+                    Onnx_MMpose.refinePointBySize(ref keyValue, scaleX, scaleY, bboxX, bboxY);
+                    keyPoints.Add(keyValue);
+                }
+                keyPointsBatch.Add(keyPoints);
+            }
+            return this.FitSizeofOutput(ref keyPointsBatch, ref ratio, ref diff, ref diff2);
+        }
+
+        // Private Func
+        private static void refinePointBySize(ref List<float> keyValue, int scaleX, int scaleY, int bboxX, int bboxY)
+        {
+            keyValue[0] = keyValue[0] * scaleX + bboxX; // x
+            keyValue[1] = keyValue[1] * scaleY + bboxY; // y
+        }
+
+        private static List<float> Heatmap2KeyPoint(float[] heatmap, int keyIdx, int heatmapHeight, int heatmapWidth)
+        {
+            var keyValue = new List<float>();
+            int topX = 0, topY = 0, absIdx = 0;
+            float topValue = 0.0f;
+            for (int i = keyIdx; i < keyIdx + heatmapHeight * heatmapWidth; i++) // argmax, amax 로 좌표 저장
+            {
+                if (heatmap[i] > topValue)
+                {
+                    topValue = heatmap[i];
+                    absIdx = i;
+                    topX = (i - keyIdx) % heatmapWidth;
+                    topY = (i - keyIdx) / heatmapWidth;
+                }
+            }
+
+            keyValue.Add(Onnx_MMpose.RefinePoint(heatmap, topX, absIdx, heatmapHeight, heatmapWidth, isY: false));  // normalized x
+            keyValue.Add(Onnx_MMpose.RefinePoint(heatmap, topY, absIdx, heatmapHeight, heatmapWidth, isY: true));   // normalized y
+            keyValue.Add(topValue); // pred
+
+            return keyValue;
+        }
+
+        private static float RefinePoint(float[] heatmap, int point, int absIdx, int heatmapHeight, int heatmapWidth, bool isY = false)
+        {
+            if ((point < 1) || (!isY && point >= heatmapWidth - 1) || (isY && point >= heatmapHeight - 1))
+            {
+                return point;
+            }
+
+            int step = isY ? heatmapWidth : 1;
+
+            float tempPoint = point;
+
+            if ((heatmap[absIdx + step] - heatmap[absIdx - step]) >= 0)
+            {
+                tempPoint += 0.25f;
+            }
+            else
+            {
+                tempPoint -= 0.25f;
+            }
+            return tempPoint;
+        }
+
+        private unsafe static float[] Mat2Array(Mat mat)
+        {
+            var imgHeight = mat.Height;
+            var imgWidth = mat.Width;
+            var imgChannel = mat.Channels();
+
+            float* matPointer = (float*)mat.DataPointer;
+
+            float[] array = new float[imgHeight * imgWidth * imgChannel]; // H * W * C
+
+            for (int y = 0; y < imgHeight; y++)
+            {
+                for (int x = 0; x < imgWidth; x++)
+                {
+                    for (int c = 0; c < imgChannel; c++)
+                    {
+                        var baseIdx = (y * imgChannel) * imgWidth + (x * imgChannel) + imgChannel;
+                        var convertedIdx = (c * imgWidth) * imgHeight + (y * imgWidth) + x;
+                        array[convertedIdx] = matPointer[baseIdx];
+                    }
+                }
+            }
+            return array;
+        }
+
+        private List<List<float>> FitSizeofOutput(ref List<List<List<float>>> output, ref float ratio, ref Point diff, ref Point diff2, int batchIdx = 0)
+        {
+            var outputList = new List<List<float>>();
+
+            for (int i=0; i< this.keyPointLength; i++)
+            {
+                var curOutput = output[batchIdx][i];
+                int fitX = (int)(Math.Max(curOutput[0] - diff.X, 0) / ratio);
+                int fitY = (int)(Math.Max(curOutput[1] - diff.Y, 0) / ratio);
+
+                outputList.Add(new List<float> { fitX, fitY, curOutput[2] });
+            }
+
+            return outputList;
+        }
+
     }
 }
