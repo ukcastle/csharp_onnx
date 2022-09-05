@@ -74,11 +74,41 @@ namespace onnx_test
             this.backgroundColor = new Scalar(color, color, color);
         }
         
-        public DisposableNamedOnnxValue[] ModelRun(List<NamedOnnxValue> input)
+        public DisposableNamedOnnxValue[] ModelRun(ref Mat inputMat)
         {
-            return this.sess.Run(input).ToArray();
+            Mat mat = new Mat();
+            inputMat.ConvertTo(mat, MatType.CV_32FC3, (float)(1 / 255.0)); // 아직 normalize 안했음 
+            var onnxInput = new List<NamedOnnxValue>
+            {
+                NamedOnnxValue.CreateFromTensor("input.1", new DenseTensor<float>(Onnx_MMpose.Mat2Array(mat), new[] { 1, 3, mat.Height, mat.Width }))
+            };
+            return this.sess.Run(onnxInput).ToArray();
         }
 
+        private unsafe static float[] Mat2Array(Mat mat)
+        {
+            var imgHeight = mat.Height;
+            var imgWidth = mat.Width;
+            var imgChannel = mat.Channels();
+
+            float* matPointer = (float*)mat.DataPointer;
+
+            float[] array = new float[imgHeight * imgWidth * imgChannel]; // H * W * C
+
+            for (int y = 0; y < imgHeight; y++)
+            {
+                for (int x = 0; x < imgWidth; x++)
+                {
+                    for (int c = 0; c < imgChannel; c++)
+                    {
+                        var baseIdx = (y * imgChannel) * imgWidth + (x * imgChannel) + imgChannel;
+                        var convertedIdx = (c * imgWidth) * imgHeight + (y * imgWidth) + x;
+                        array[convertedIdx] = matPointer[baseIdx];
+                    }
+                }
+            }
+            return array;
+        }
 
         public Mat MakeLetterBoxByMat(ref Mat input, out float ratio, out Point diff, out Point diff2, bool auto = true, bool scaleFill = false, bool isScaleUp = true)
         {

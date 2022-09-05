@@ -43,19 +43,7 @@ namespace onnx_test
 
             Mat src = Cv2.ImRead("C:\\Users\\Admin\\Documents\\3326.jpg", ImreadModes.Color);
             var inputMat = onnxPose.MakeLetterBoxByMat(ref src, out float ratio, out Point diff, out Point diff2, auto:false, scaleFill:false);
-            Mat visMat = inputMat.Clone();
-        
-            inputMat.ConvertTo(inputMat, MatType.CV_32FC3, (float)(1 / 255.0)); // 아직 normalize 안했음 
-            var inputTensor = new DenseTensor<float>(Mat2Array(inputMat), new[] { 1, 3, inputMat.Height, inputMat.Width });
-
-
-            var onnxInput = new List<NamedOnnxValue>
-            {
-                NamedOnnxValue.CreateFromTensor("input.1", inputTensor)
-            };
-
-            
-            var results = onnxPose.ModelRun(onnxInput); // 1(N) * 17(C) * 64(H) * 48(W)
+            var results = onnxPose.ModelRun(ref inputMat); // 1(N) * 17(C) * 64(H) * 48(W)
             
 
             var predValue = results[0].AsEnumerable<float>().ToArray(); // 1 17 64 48
@@ -72,11 +60,11 @@ namespace onnx_test
                 Point start = new Point(output[0][startIdx][0], output[0][startIdx][1]);
                 Point end = new Point(output[0][endIdx][0], output[0][endIdx][1]);
 
-                Cv2.Line(visMat, start, end, color);
+                Cv2.Line(inputMat, start, end, color);
             }
-            Cv2.Line(visMat, diff, diff2, new Scalar(255,0,0));
-            Cv2.Resize(visMat, visMat, new Size(192 * 3, 256 * 3));
-            Cv2.ImShow("dd", visMat);
+            Cv2.Line(inputMat, diff, diff2, new Scalar(255,0,0));
+            Cv2.Resize(inputMat, inputMat, new Size(192 * 3, 256 * 3));
+            Cv2.ImShow("dd", inputMat);
             Cv2.WaitKey();
         }
 
@@ -160,33 +148,6 @@ namespace onnx_test
             return tempPoint;
 
         }
-
-        unsafe static float[] Mat2Array(Mat mat)
-        {
-            var imgHeight = mat.Height;
-            var imgWidth = mat.Width;
-            var imgChannel = mat.Channels();
-
-            float* matPointer = (float*)mat.DataPointer;
-
-            float[] array = new float[imgHeight * imgWidth * imgChannel]; // H * W * C
-
-            for (int y = 0; y < imgHeight; y++)
-            {
-                for (int x = 0; x < imgWidth; x++)
-                {
-                    for (int c = 0; c < imgChannel; c++)
-                    {
-                        var baseIdx = (y * imgChannel) * imgWidth + (x * imgChannel) + imgChannel;
-                        var convertedIdx = (c * imgWidth) * imgHeight + (y * imgWidth) + x;
-                        array[convertedIdx] = matPointer[baseIdx];
-                    }
-                }
-            }
-
-            return array;
-        } 
-
         
     }
 }
