@@ -4,31 +4,61 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using OpenCvSharp;
-using Microsoft.ML.OnnxRuntime;
-using Microsoft.ML.OnnxRuntime.Tensors;
 
+using System.Diagnostics;
 
 namespace onnx_test
 {
     static class Program
     {
-        
+        /*
+         * 100회 기준 tact time
+         * hr : 97ms, 10fps
+         * res50fp16 : 65ms, 15fps
+         * mobv2 : 48ms, 20fps
+         * shufflev2 : 33ms, 30fps
+         */
+         
         [STAThread]
         static void Main()
         {
-            Onnx_MMpose onnxPose = new Onnx_MMpose("C:\\Users\\Admin\\Documents\\output.onnx", 192, 256);
+            const string onnxPath = "C:\\Users\\Admin\\Documents\\hr.onnx";
+            //const string imgPath = "C:\\Users\\Admin\\Documents\\3326.jpg";
+            //const string imgPath = "C:\\Users\\Admin\\Documents\\20201123_General_001_DIS_S_F20_SS_001_0001.jpg";
+            const string imgPath = "C:\\Users\\Admin\\Documents\\aa1.jpg";
+            //const string imgPath = "C:\\Users\\Admin\\Documents\\Capture_213.jpg";
 
-            //Mat src = Cv2.ImRead("C:\\Users\\Admin\\Documents\\3326.jpg", ImreadModes.Color);
-            //var inputMat = onnxPose.MakeInputMat(ref src, out float ratio, out Point diff, out Point diff2, auto:false, scaleFill:false);
+            //float time = CheckTime(100, onnxPath, imgPath);
+            //int fps = (int)(1000 / time);
 
-            var inputMat = onnxPose.MakeInputMat("C:\\Users\\Admin\\Documents\\20201123_General_001_DIS_S_F20_SS_001_0001.jpg", out Mat src, out float ratio, out Point diff, out Point diff2);
+            Onnx_MMpose onnxPose = new Onnx_MMpose(onnxPath, 192, 256);
+            
+            var inputMat = onnxPose.MakeInputMat(imgPath, out Mat src, out float ratio, out Point diff, out Point diff2);
             var results = onnxPose.ModelRun(ref inputMat); // 1(N) * 17(C) * 64(H) * 48(W)
-            var output = onnxPose.PostProcess(results, ref ratio, ref diff, ref diff2, inputMat.Width, inputMat.Height);
+            var output = onnxPose.PostProcess(results, ref ratio, ref diff, ref diff2, inputMat.Width, inputMat.Height); // 17(Key Point) * 3 (x, y, pred)
 
             var dst = onnxPose.DrawOutput(ref src, output);
             
             Cv2.ImShow("dd", dst);
             Cv2.WaitKey();
+            Cv2.DestroyAllWindows();
+        }
+
+        static float CheckTime(int cnt, string onnxPath, string imgPath)
+        {
+            Onnx_MMpose onnxPose = new Onnx_MMpose(onnxPath, 192, 256);
+
+            Mat src = Cv2.ImRead(imgPath, ImreadModes.Color);
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            for (int i = 0; i < cnt; i++)
+            {
+                var inputMatTime = onnxPose.MakeInputMat(ref src, out float ratioTime, out Point diffTime, out Point diff2Time, auto: false, scaleFill: false);
+                var resultsa = onnxPose.PostProcess(onnxPose.ModelRun(ref inputMatTime), ref ratioTime, ref diffTime, ref diff2Time, inputMatTime.Width, inputMatTime.Height); // 1(N) * 17(C) * 64(H) * 48(W)
+            }
+            stopwatch.Stop();
+
+            return (stopwatch.ElapsedMilliseconds / cnt);
         }
 
     }
