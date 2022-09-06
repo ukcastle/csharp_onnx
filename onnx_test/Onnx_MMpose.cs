@@ -190,7 +190,7 @@ namespace onnx_test
                     int idx1 = batch * predDims[1] * predDims[2] * predDims[3]; //사실 0만나옴
                     int idx2 = key * predDims[2] * predDims[3];
                     var keyValue = Onnx_MMpose.Heatmap2KeyPoint(predValue, idx1 + idx2, predDims[2], predDims[3]); // 3(x,y,pred);
-                    Onnx_MMpose.refinePointBySize(ref keyValue, scaleX, scaleY, bboxX, bboxY);
+                    Onnx_MMpose.RefinePointBySize(ref keyValue, scaleX, scaleY, bboxX, bboxY);
                     keyPoints.Add(keyValue);
                 }
                 keyPointsBatch.Add(keyPoints);
@@ -199,7 +199,7 @@ namespace onnx_test
         }
 
         // Private Func
-        private static void refinePointBySize(ref List<float> keyValue, int scaleX, int scaleY, int bboxX, int bboxY)
+        private static void RefinePointBySize(ref List<float> keyValue, int scaleX, int scaleY, int bboxX, int bboxY)
         {
             keyValue[0] = keyValue[0] * scaleX + bboxX; // x
             keyValue[1] = keyValue[1] * scaleY + bboxY; // y
