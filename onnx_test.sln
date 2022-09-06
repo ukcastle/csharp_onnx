@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.2092
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "onnx_test", "onnx_test\onnx_test.csproj", "{A487E4CE-7E21-4E00-8FE5-34ACE807B36B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A487E4CE-7E21-4E00-8FE5-34ACE807B36B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A487E4CE-7E21-4E00-8FE5-34ACE807B36B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A487E4CE-7E21-4E00-8FE5-34ACE807B36B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A487E4CE-7E21-4E00-8FE5-34ACE807B36B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6EDAD08C-5A38-4ACA-8579-269ACF4891F8}
+	EndGlobalSection
+EndGlobal
