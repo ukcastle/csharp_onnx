@@ -1,0 +1,5 @@
+onnx_test/bin/*
+onnx_test/obj/*
+onnx_test/Properties/*
+packages/*
+.vs/*
