@@ -57,6 +57,11 @@ namespace onnx_test
         private readonly Size size;
         private readonly Scalar backgroundColor;
         private readonly int keyPointLength;
+        private static readonly float[,] normalizeValue = new float[2, 3]
+        {
+            {0.406f, 0.456f, 0.485f}, // mean b g r
+            {0.225f, 0.224f, 0.229f} // std b g r
+        };
 
         // Constructor
         public Onnx_MMpose(string onnxPath, int width, int height, int backgroundColor = 114)
@@ -69,10 +74,13 @@ namespace onnx_test
             var option = new SessionOptions
             {
                 GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL,
-                ExecutionMode = ExecutionMode.ORT_SEQUENTIAL
+                ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,    
             };
+
+            //SessionOptions.MakeSessionOptionWithCudaProvider();
             
             this.sess = new InferenceSession(onnxPath, option);
+            //this.sess = new InferenceSession(onnxPath, SessionOptions.MakeSessionOptionWithCudaProvider());
             this.size = new Size(width, height);
             this.backgroundColor = new Scalar(backgroundColor, backgroundColor, backgroundColor);
             this.keyPointLength = System.Enum.GetValues(typeof(KeyPoint)).Length;
@@ -82,7 +90,7 @@ namespace onnx_test
         public Mat MakeInputMat(ref Mat input, out float ratio, out Point diff, out Point diff2, bool auto = true, bool scaleFill = false, bool isScaleUp = true)
         {
             Mat img = input.Clone();
-            //Cv2.CvtColor(img, img, ColorConversionCodes.RGB2BGR);
+            //Cv2.CvtColor(img, img, ColorConversionCodes.BGR2RGB);
             ratio = Math.Min((float)this.size.Width / img.Width, (float)this.size.Height / img.Height);
 
             if (!isScaleUp)
@@ -143,7 +151,7 @@ namespace onnx_test
         public DisposableNamedOnnxValue[] ModelRun(ref Mat inputMat)
         {
             Mat mat = new Mat();
-            inputMat.ConvertTo(mat, MatType.CV_32FC3, (float)(1 / 255.0)); // 아직 normalize 안했음 
+            inputMat.ConvertTo(mat, MatType.CV_32FC3, (float)(1 / 255.0));
             var onnxInput = new List<NamedOnnxValue>
             {
                 NamedOnnxValue.CreateFromTensor("input.1", new DenseTensor<float>(Onnx_MMpose.Mat2Array(mat), new[] { 1, 3, mat.Height, mat.Width }))
@@ -250,7 +258,7 @@ namespace onnx_test
             return tempPoint;
         }
 
-        private unsafe static float[] Mat2Array(Mat mat)
+        private static unsafe float[] Mat2Array(Mat mat)
         {
             var imgHeight = mat.Height;
             var imgWidth = mat.Width;
@@ -269,6 +277,7 @@ namespace onnx_test
                         var baseIdx = (y * imgChannel) * imgWidth + (x * imgChannel) + imgChannel;
                         var convertedIdx = (c * imgWidth) * imgHeight + (y * imgWidth) + x;
                         array[convertedIdx] = matPointer[baseIdx];
+                        array[convertedIdx] = (matPointer[baseIdx] - Onnx_MMpose.normalizeValue[0, c]) / Onnx_MMpose.normalizeValue[1, c];
                     }
                 }
             }
