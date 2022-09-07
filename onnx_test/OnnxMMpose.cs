@@ -6,11 +6,19 @@ using System.Threading.Tasks;
 
 using OpenCvSharp;
 using Microsoft.ML.OnnxRuntime;
-using Microsoft.ML.OnnxRuntime.Tensors;
 namespace onnx_test
 {
-    class OnnxMMpose : OnnxModel
+    internal class OnnxMMpose : OnnxModel
     {
+
+        /*
+         * 100회 기준 tact time
+         * hr : 97ms, 10fps / 33ms, 30fps
+         * res50fp16 : 65ms, 15fps / 26ms, 38fps
+         * mobv2 : 48ms, 20fps /  14ms, 71fps
+         * shufflev2 : 33ms, 30fps / 16ms, 62fps
+         */
+
         // Member
         private static readonly int[,] skeleton = new int[17, 5]
         {
@@ -52,14 +60,10 @@ namespace onnx_test
             LeftAnkle,
             RightAnkle
         }
-        private readonly int keyPointLength;
 
         // Constructor
-        public OnnxMMpose(string onnxPath, int width, int height, string inputName = "input.1", int backgroundColor = 114) 
-            : base(onnxPath,width, height, inputName, backgroundColor)
-        {
-            this.keyPointLength = System.Enum.GetValues(typeof(KeyPoint)).Length;
-        }
+        public OnnxMMpose(string onnxPath, int width = 192, int height = 256, string inputName = "input.1")
+            : base(onnxPath, width, height, inputName) { }
 
         public override List<List<float>> PostProcess(
             DisposableNamedOnnxValue[] output, ref float ratio, ref Point diff, int imgWidth, int imgHeight, int bboxX = 0, int bboxY = 0, int batchIdx = 0)
@@ -74,7 +78,7 @@ namespace onnx_test
 
             for (int key = 0; key < predDims[1]; key++)
             {
-                int idx1 = batchIdx * predDims[1] * predDims[2] * predDims[3]; //사실 0만나옴
+                int idx1 = batchIdx * predDims[1] * predDims[2] * predDims[3];
                 int idx2 = key * predDims[2] * predDims[3];
                 var keyValue = OnnxMMpose.Heatmap2KeyPoint(predValue, idx1 + idx2, predDims[2], predDims[3]); // 3(x,y,pred);
                 OnnxModel.RefinePointBySize(ref keyValue, scaleX, scaleY, bboxX, bboxY);
@@ -84,11 +88,11 @@ namespace onnx_test
             return this.FitSizeofOutput(ref keyPoints, ref ratio, ref diff);
         }
 
-        public Mat DrawOutput(ref Mat inputMat, List<List<float>> output)
+        public override Mat DrawOutput(ref Mat inputMat, List<List<float>> output)
         {
             Mat outputMat = inputMat.Clone();
 
-            for (int i = 0; i < this.keyPointLength; i++)
+            for (int i = 0; i < skeleton.Length; i++)
             {
                 int startIdx = OnnxMMpose.skeleton[i, 0];
                 int endIdx = OnnxMMpose.skeleton[i, 1];
@@ -153,11 +157,11 @@ namespace onnx_test
             return tempPoint;
         }
 
-        private List<List<float>> FitSizeofOutput(ref List<List<float>> output, ref float ratio, ref Point diff)
+        protected override List<List<float>> FitSizeofOutput(ref List<List<float>> output, ref float ratio, ref Point diff)
         {
             var outputList = new List<List<float>>();
 
-            for (int i=0; i< this.keyPointLength; i++)
+            for (int i = 0; i < output.Count; i++)
             {
                 var curOutput = output[i];
                 int fitX = (int)(Math.Max(curOutput[0] - diff.X, 0) / ratio);
