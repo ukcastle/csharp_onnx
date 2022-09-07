@@ -13,29 +13,30 @@ namespace onnx_test
     {
         /*
          * 100회 기준 tact time
-         * hr : 97ms, 10fps
-         * res50fp16 : 65ms, 15fps
-         * mobv2 : 48ms, 20fps
-         * shufflev2 : 33ms, 30fps
+         * hr : 97ms, 10fps / 33ms, 30fps
+         * res50fp16 : 65ms, 15fps / 26ms, 38fps
+         * mobv2 : 48ms, 20fps /  14ms, 71fps
+         * shufflev2 : 33ms, 30fps / 16ms, 62fps
          */
          
         [STAThread]
         static void Main()
-        {
+       {
             const string onnxPath = "C:\\Users\\Admin\\Documents\\hr.onnx";
             //const string imgPath = "C:\\Users\\Admin\\Documents\\3326.jpg";
             //const string imgPath = "C:\\Users\\Admin\\Documents\\20201123_General_001_DIS_S_F20_SS_001_0001.jpg";
-            const string imgPath = "C:\\Users\\Admin\\Documents\\aa1.jpg";
-            //const string imgPath = "C:\\Users\\Admin\\Documents\\Capture_213.jpg";
+            //const string imgPath = "C:\\Users\\Admin\\Documents\\aa1.jpg";
+            const string imgPath = "C:\\Users\\Admin\\Documents\\Capture_213.jpg";
+            //const string imgPath = "C:\\Users\\Admin\\Documents\\1122.jpg";
 
             //float time = CheckTime(100, onnxPath, imgPath);
             //int fps = (int)(1000 / time);
 
             Onnx_MMpose onnxPose = new Onnx_MMpose(onnxPath, 192, 256);
             
-            var inputMat = onnxPose.MakeInputMat(imgPath, out Mat src, out float ratio, out Point diff, out Point diff2);
+            var inputMat = onnxPose.MakeInputMat(imgPath, out Mat src, out float ratio, out Point diff);
             var results = onnxPose.ModelRun(ref inputMat); // 1(N) * 17(C) * 64(H) * 48(W)
-            var output = onnxPose.PostProcess(results, ref ratio, ref diff, ref diff2, inputMat.Width, inputMat.Height); // 17(Key Point) * 3 (x, y, pred)
+            var output = onnxPose.PostProcess(results, ref ratio, ref diff, inputMat.Width, inputMat.Height); // 17(Key Point) * 3 (x, y, pred)
 
             var dst = onnxPose.DrawOutput(ref src, output);
             
@@ -53,8 +54,8 @@ namespace onnx_test
             stopwatch.Start();
             for (int i = 0; i < cnt; i++)
             {
-                var inputMatTime = onnxPose.MakeInputMat(ref src, out float ratioTime, out Point diffTime, out Point diff2Time, auto: false, scaleFill: false);
-                var resultsa = onnxPose.PostProcess(onnxPose.ModelRun(ref inputMatTime), ref ratioTime, ref diffTime, ref diff2Time, inputMatTime.Width, inputMatTime.Height); // 1(N) * 17(C) * 64(H) * 48(W)
+                var inputMatTime = onnxPose.MakeInputMat(ref src, out float ratioTime, out Point diffTime);
+                var resultsa = onnxPose.PostProcess(onnxPose.ModelRun(ref inputMatTime), ref ratioTime, ref diffTime, inputMatTime.Width, inputMatTime.Height); // 1(N) * 17(C) * 64(H) * 48(W)
             }
             stopwatch.Stop();
 
