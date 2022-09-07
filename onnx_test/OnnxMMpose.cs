@@ -9,7 +9,7 @@ using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 namespace onnx_test
 {
-    class Onnx_MMpose : Onnx_Model
+    class OnnxMMpose : OnnxModel
     {
         // Member
         private static readonly int[,] skeleton = new int[17, 5]
@@ -55,7 +55,7 @@ namespace onnx_test
         private readonly int keyPointLength;
 
         // Constructor
-        public Onnx_MMpose(string onnxPath, int width, int height, string inputName = "input.1", int backgroundColor = 114) 
+        public OnnxMMpose(string onnxPath, int width, int height, string inputName = "input.1", int backgroundColor = 114) 
             : base(onnxPath,width, height, inputName, backgroundColor)
         {
             this.keyPointLength = System.Enum.GetValues(typeof(KeyPoint)).Length;
@@ -76,8 +76,8 @@ namespace onnx_test
             {
                 int idx1 = batchIdx * predDims[1] * predDims[2] * predDims[3]; //사실 0만나옴
                 int idx2 = key * predDims[2] * predDims[3];
-                var keyValue = Onnx_MMpose.Heatmap2KeyPoint(predValue, idx1 + idx2, predDims[2], predDims[3]); // 3(x,y,pred);
-                Onnx_Model.RefinePointBySize(ref keyValue, scaleX, scaleY, bboxX, bboxY);
+                var keyValue = OnnxMMpose.Heatmap2KeyPoint(predValue, idx1 + idx2, predDims[2], predDims[3]); // 3(x,y,pred);
+                OnnxModel.RefinePointBySize(ref keyValue, scaleX, scaleY, bboxX, bboxY);
                 keyPoints.Add(keyValue);
             }
 
@@ -90,8 +90,8 @@ namespace onnx_test
 
             for (int i = 0; i < this.keyPointLength; i++)
             {
-                int startIdx = Onnx_MMpose.skeleton[i, 0];
-                int endIdx = Onnx_MMpose.skeleton[i, 1];
+                int startIdx = OnnxMMpose.skeleton[i, 0];
+                int endIdx = OnnxMMpose.skeleton[i, 1];
                 Scalar color = new Scalar(skeleton[i, 2], skeleton[i, 3], skeleton[i, 4]);
 
                 Point start = new Point(output[startIdx][0], output[startIdx][1]);
@@ -120,8 +120,8 @@ namespace onnx_test
                 }
             }
 
-            keyValue.Add(Onnx_MMpose.RefinePoint(heatmap, topX, absIdx, heatmapHeight, heatmapWidth, isY: false));  // normalized x
-            keyValue.Add(Onnx_MMpose.RefinePoint(heatmap, topY, absIdx, heatmapHeight, heatmapWidth, isY: true));   // normalized y
+            keyValue.Add(OnnxMMpose.RefinePoint(heatmap, topX, absIdx, heatmapHeight, heatmapWidth, isY: false));  // normalized x
+            keyValue.Add(OnnxMMpose.RefinePoint(heatmap, topY, absIdx, heatmapHeight, heatmapWidth, isY: true));   // normalized y
             keyValue.Add(topValue); // pred
 
             return keyValue;

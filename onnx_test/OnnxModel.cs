@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace onnx_test
 {
-    internal abstract class Onnx_Model
+    internal abstract class OnnxModel
     {
         // Member
         protected readonly InferenceSession sess;
@@ -25,7 +25,7 @@ namespace onnx_test
         };
 
         // Constructor
-        protected Onnx_Model(string onnxPath, int width, int height, string inputName, int backgroundColor = 114)
+        protected OnnxModel(string onnxPath, int width, int height, string inputName, int backgroundColor = 114)
         {
             var option = new SessionOptions
             {
@@ -95,15 +95,11 @@ namespace onnx_test
 
         public DisposableNamedOnnxValue[] ModelRun(ref Mat inputMat)
         {
-            /*
-             * input : Mat ( Have to fit Model Input )
-             * Output : DisposableNamedOnnxValue[] ( 1(N) * 17(C) * 64(H) * 48(W) )
-             */
             Mat mat = new Mat();
             inputMat.ConvertTo(mat, MatType.CV_32FC3, (float)(1 / 255.0));
             var onnxInput = new List<NamedOnnxValue>
             {
-                NamedOnnxValue.CreateFromTensor(this.inputName, new DenseTensor<float>(Onnx_Model.Mat2Array(mat), new[] { 1, 3, mat.Height, mat.Width }))
+                NamedOnnxValue.CreateFromTensor(this.inputName, new DenseTensor<float>(OnnxModel.Mat2Array(mat), new[] { 1, 3, mat.Height, mat.Width }))
             };
             return this.sess.Run(onnxInput).ToArray();
         }
@@ -136,7 +132,7 @@ namespace onnx_test
                         var baseIdx = (y * imgChannel) * imgWidth + (x * imgChannel) + imgChannel;
                         var convertedIdx = (c * imgWidth) * imgHeight + (y * imgWidth) + x;
                         array[convertedIdx] = matPointer[baseIdx];
-                        array[convertedIdx] = (matPointer[baseIdx] - Onnx_Model.normalizeValue[0, c]) / Onnx_Model.normalizeValue[1, c];
+                        array[convertedIdx] = (matPointer[baseIdx] - OnnxModel.normalizeValue[0, c]) / OnnxModel.normalizeValue[1, c];
                     }
                 }
             }

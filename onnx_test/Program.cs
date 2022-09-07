@@ -32,7 +32,7 @@ namespace onnx_test
             //float time = CheckTime(100, onnxPath, imgPath);
             //int fps = (int)(1000 / time);
 
-            Onnx_MMpose onnxPose = new Onnx_MMpose(onnxPath, 192, 256);
+            OnnxMMpose onnxPose = new OnnxMMpose(onnxPath, 192, 256);
             
             var inputMat = onnxPose.MakeInputMat(imgPath, out Mat src, out float ratio, out Point diff);
             var results = onnxPose.ModelRun(ref inputMat); // 1(N) * 17(C) * 64(H) * 48(W)
@@ -47,7 +47,7 @@ namespace onnx_test
 
         static float CheckTime(int cnt, string onnxPath, string imgPath)
         {
-            Onnx_MMpose onnxPose = new Onnx_MMpose(onnxPath, 192, 256);
+            OnnxMMpose onnxPose = new OnnxMMpose(onnxPath, 192, 256);
 
             Mat src = Cv2.ImRead(imgPath, ImreadModes.Color);
             Stopwatch stopwatch = new Stopwatch();
