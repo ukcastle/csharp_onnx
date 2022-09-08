@@ -50,6 +50,7 @@ namespace onnx_test
 
                 Cv2.Rectangle(outputMat, new Rect(x1, y1, x2 - x1, y2 - y1), new Scalar(255, 0, 0));
             }
+
             return outputMat;
         }
 
@@ -93,24 +94,22 @@ namespace onnx_test
 
             for (int preds = 0; preds < predDims[1]; preds++)
             {
-                int batch = batchIdx * predDims[1];
+                int batch = batchIdx * predDims[1] * predDims[2];
                 int predIdx = batch + preds * predDims[2];
 
                 var objectPred = predValue[predIdx + 4];
                 if (objectPred < this.predThresh) { continue; }
 
                 var curCandidate = new List<float>();
-                for (int i = 0; i < 4; i++)
+                for (int i=0; i < predDims[2]; i++)
                 {
-                    curCandidate.Add(predValue[predIdx + i]); // input x y w h  
+                    curCandidate.Add(predValue[predIdx + i]); // x, y, w, h, preds, object preds...  
+                }
+                for (int i=5; i < curCandidate.Count; i++)
+                {
+                    curCandidate[i] *= curCandidate[4];
                 }
 
-                curCandidate.Add(objectPred); // pred
-
-                for (int i = 5; i < predDims[2]; i++)
-                {
-                    curCandidate.Add(predValue[predIdx + i] * objectPred);
-                }
                 candidate.Add(curCandidate);
             }
 
@@ -150,7 +149,7 @@ namespace onnx_test
             }
             return mat;
         }
-        private List<List<float>> NMS(List<List<float>> candidate, int maxWH = 640*12)
+        private List<List<float>> NMS(List<List<float>> candidate, int maxWH = 4096)
         {
             List<List<float>> nmsCandidate = new List<List<float>>();
 
@@ -168,7 +167,7 @@ namespace onnx_test
             }
             CvDnn.NMSBoxes(bboxes, confidences, this.predThresh, this.iouThresh, out int[] indices);
 
-            for (int i=0; i<indices.Length; i++) { nmsCandidate.Add(candidate[i]); }
+            for (int i=0; i<indices.Length; i++) { nmsCandidate.Add(candidate[indices[i]]); }
 
             return nmsCandidate;
         }

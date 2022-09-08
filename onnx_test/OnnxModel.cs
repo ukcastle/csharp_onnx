@@ -18,10 +18,10 @@ namespace onnx_test
         protected readonly string inputName;
         protected static readonly float[,] normalizeValue = new float[2, 3]
         {
-            {0.406f, 0.456f, 0.485f}, // mean b g r
-            {0.225f, 0.224f, 0.229f} // std b g r
-            //{0.485f, 0.456f, 0.406f}, // mean r g b
-            //{0.229f, 0.224f, 0.225f} // std r g b
+            //{0.406f, 0.456f, 0.485f}, // mean b g r
+            //{0.225f, 0.224f, 0.229f} // std b g r
+            {0.485f, 0.456f, 0.406f}, // mean r g b
+            {0.229f, 0.224f, 0.225f} // std r g b
         };
 
         // Constructor
@@ -51,7 +51,7 @@ namespace onnx_test
              */
 
             Mat img = input.Clone();
-            //Cv2.CvtColor(img, img, ColorConversionCodes.BGR2RGB);
+            Cv2.CvtColor(img, img, ColorConversionCodes.BGR2RGB);
             ratio = Math.Min((float)this.size.Width / img.Width, (float)this.size.Height / img.Height);
 
             if (!isScaleUp)
