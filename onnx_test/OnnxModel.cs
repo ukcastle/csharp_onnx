@@ -105,7 +105,7 @@ namespace onnx_test
         }
 
         public abstract List<List<float>> PostProcess(
-            DisposableNamedOnnxValue[] output, ref float ratio, ref Point diff, int imgWidth, int imgHeight, int bboxX, int bboxY, int batchIdx);
+            DisposableNamedOnnxValue[] output, ref float ratio, ref Point diff, int imgWidth, int imgHeight, int bboxX = 0, int bboxY = 0, int batchIdx = 0);
         public abstract Mat DrawOutput(ref Mat inputMat, List<List<float>> output);
         protected abstract List<List<float>> FitSizeofOutput(ref List<List<float>> output, ref float ratio, ref Point diff);
         // Private Func

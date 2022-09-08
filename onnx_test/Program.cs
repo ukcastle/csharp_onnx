@@ -14,32 +14,21 @@ namespace onnx_test
         [STAThread]
         static void Main()
        {
-            const string onnxPath = "C:\\Users\\Admin\\Documents\\hr.onnx";
+            const string posePath = "C:\\Users\\Admin\\Documents\\hr.onnx";
             const string yoloPath = "C:\\Users\\Admin\\Documents\\best.onnx";
-            //const string imgPath = "C:\\Users\\Admin\\Documents\\3326.jpg";
-            //const string imgPath = "C:\\Users\\Admin\\Documents\\20201123_General_001_DIS_S_F20_SS_001_0001.jpg";
-            const string imgPath = "C:\\Users\\Admin\\Documents\\20201202_General_068_DOS_A_M40_MM_007_0053.jpg";
-            //const string imgPath = "C:\\Users\\Admin\\Documents\\aa1.jpg";
-            //const string imgPath = "C:\\Users\\Admin\\Documents\\1122.jpg";
+            const string imgPath = "C:\\Users\\Admin\\Documents\\20201123_General_001_DIS_S_F20_SS_001_0001.jpg";
 
+            OnnxModel onnxModel = new OnnxYolo(yoloPath, width: 640, height: 640);
+            //OnnxModel onnxModel = new OnnxMMpose(posePath, 192, 256);
 
-            OnnxYolo onnxYolo = new OnnxYolo(yoloPath);
-            var inputMat = onnxYolo.MakeInputMat(imgPath, out Mat src, out float ratio, out Point diff);
-            var results = onnxYolo.ModelRun(ref inputMat);
-            var output = onnxYolo.PostProcess(results, ref ratio, ref diff, inputMat.Width, inputMat.Height);
-            var dst = onnxYolo.DrawOutput(ref src, output);
-
-
-            //float time = CheckTime(100, onnxPath, imgPath);
+            //float time = CheckTime(100, posePath, imgPath);
             //int fps = (int)(1000 / time);
 
-            //OnnxMMpose onnxPose = new OnnxMMpose(onnxPath, 192, 256);
 
-            //var inputMat = onnxPose.MakeInputMat(imgPath, out Mat src, out float ratio, out Point diff);
-            //var results = onnxPose.ModelRun(ref inputMat); // 1(N) * 17(C) * 64(H) * 48(W)
-            //var output = onnxPose.PostProcess(results, ref ratio, ref diff, inputMat.Width, inputMat.Height); // 17(Key Point) * 3 (x, y, pred)
-
-            //var dst = onnxPose.DrawOutput(ref src, output);
+            var inputMat = onnxModel.MakeInputMat(imgPath, out Mat src, out float ratio, out Point diff);
+            var results = onnxModel.ModelRun(ref inputMat);
+            var output = onnxModel.PostProcess(results, ref ratio, ref diff, inputMat.Width, inputMat.Height);
+            var dst = onnxModel.DrawOutput(ref src, output);
 
             Cv2.ImShow("dd", dst);
             Cv2.WaitKey();
