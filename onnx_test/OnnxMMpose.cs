@@ -92,12 +92,11 @@ namespace onnx_test
         {
             Mat outputMat = inputMat.Clone();
 
-            for (int i = 0; i < skeleton.Length; i++)
+            for (int i = 0; i < (skeleton.Length / 5); i++)
             {
                 int startIdx = OnnxMMpose.skeleton[i, 0];
                 int endIdx = OnnxMMpose.skeleton[i, 1];
                 Scalar color = new Scalar(skeleton[i, 2], skeleton[i, 3], skeleton[i, 4]);
-
                 Point start = new Point(output[startIdx][0], output[startIdx][1]);
                 Point end = new Point(output[endIdx][0], output[endIdx][1]);
 
