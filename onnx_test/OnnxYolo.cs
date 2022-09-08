@@ -171,5 +171,19 @@ namespace onnx_test
 
             return nmsCandidate;
         }
+
+        public Mat MakeObjectCroppedMat(ref Mat src, int x1, int y1, int x2, int y2, int padding = 50)
+        {
+            x1 = Math.Max(0, x1 - padding);
+            y1 = Math.Max(0, y1 - padding);
+            x2 = Math.Min(src.Width, x2 + padding);
+            y2 = Math.Min(src.Height, y2 + padding);
+
+
+            Rect rect = new Rect(x1, y1, x2 - x1, y2 - y1);
+            Mat output = src.SubMat(rect);
+
+            return output;
+        }
     }
 }
