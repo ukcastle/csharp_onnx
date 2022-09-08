@@ -16,7 +16,7 @@ namespace onnx_test
         private readonly float iouThresh;
 
 
-        public OnnxYolo(string onnxPath, float predThresh = 0.2f, float iouThresh = 0.4f, int width = 640, int height = 640, string inputName = "images")
+        public OnnxYolo(string onnxPath, int width = 640, int height = 640, float predThresh = 0.2f, float iouThresh = 0.4f,  string inputName = "images")
             : base(onnxPath, width, height, inputName) {
             this.predThresh = predThresh;
             this.iouThresh = iouThresh;
