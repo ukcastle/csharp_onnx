@@ -106,6 +106,14 @@ namespace onnx_test
             return outputMat;
         }
 
+        public void FitOriginSize(ref List<List<float>> output, int baseX1, int baseY1)
+        {
+            for (int i=0; i < output.Count; i++)
+            {
+                output[i][0] += baseX1;
+                output[i][1] += baseY1;
+            }
+        }
 
         private static List<float> Heatmap2KeyPoint(float[] heatmap, int keyIdx, int heatmapHeight, int heatmapWidth)
         {
