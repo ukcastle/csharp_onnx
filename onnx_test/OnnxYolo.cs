@@ -15,13 +15,11 @@ namespace onnx_test
         private readonly float predThresh;
         private readonly float iouThresh;
 
-
         public OnnxYolo(string onnxPath, int width = 640, int height = 640, float predThresh = 0.2f, float iouThresh = 0.4f,  string inputName = "images")
             : base(onnxPath, width, height, inputName) {
             this.predThresh = predThresh;
             this.iouThresh = iouThresh;
         }
-
 
         public override List<List<float>> PostProcess(
             DisposableNamedOnnxValue[] output, ref float ratio, ref Point diff, int imgWidth, int imgHeight, int bboxX = 0, int bboxY = 0, int batchIdx = 0)
@@ -172,13 +170,12 @@ namespace onnx_test
             return nmsCandidate;
         }
 
-        public Mat MakeObjectCroppedMat(ref Mat src, int x1, int y1, int x2, int y2, int padding = 50)
+        public Mat MakeObjectCroppedMat(ref Mat src, int x1, int y1, int x2, int y2, out int baseX1, out int baseY1, int padding = 50)
         {
-            x1 = Math.Max(0, x1 - padding);
-            y1 = Math.Max(0, y1 - padding);
+            baseX1 = x1 = Math.Max(0, x1 - padding);
+            baseY1 = y1 = Math.Max(0, y1 - padding);
             x2 = Math.Min(src.Width, x2 + padding);
             y2 = Math.Min(src.Height, y2 + padding);
-
 
             Rect rect = new Rect(x1, y1, x2 - x1, y2 - y1);
             Mat output = src.SubMat(rect);
