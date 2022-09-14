@@ -17,30 +17,29 @@ namespace onnx_test
        {
             const string posePath = "C:\\Users\\Admin\\Documents\\hr.onnx";
             const string yoloPath = "C:\\Users\\Admin\\Documents\\640s_full.onnx";
-            const string imgPath = "C:\\Users\\Admin\\Documents\\20201211_General_118_DOC_A_M40_MM_024_0049.jpg";
+            const string imgPath = "C:\\Users\\Admin\\Documents\\sdsdsd.jpg";
 
             /* 모델 로드 */
             OnnxMMpose onnxModel = new OnnxMMpose(posePath, 192, 256);
             OnnxYolo yoloModel = new OnnxYolo(yoloPath, 640, 640);
 
-            var croppedImg = RunYoloDetect(yoloModel, imgPath);
+            Mat src = Cv2.ImRead(imgPath); 
 
-
-            /* Img(Mat) or ImgPath(String) -> InputMat 만들기 */
-            //이미지 경로로 받기
-            //var inputMat = onnxModel.MakeInputMat(imgPath, out Mat src, out float ratio, out Point diff);
-
-            /* or (mat이 이미 있을때) */
-            var inputMat = onnxModel.MakeInputMat(ref croppedImg, out float ratio, out Point diff);
-
-
+            /* 전체 이미지에서 사람 부분만 크롭해오기 */
+            /* baseX1,Y1에 크롭된 왼쪽 위 꼭짓점 좌표 받아옴(원본 영상에 매칭하기 위해) */
+            var croppedImg = RunYoloDetect(ref yoloModel, ref src, out int baseX1, out int baseY1);
+            
             /* PostProcess까지 하면 결과값 출력 */
             /* KeyPoint 순서로 출력됨(OnnxMMpose.cs 참조) */
+            var inputMat = onnxModel.MakeInputMat(ref croppedImg, out float ratio, out Point diff);
             var results = onnxModel.ModelRun(ref inputMat);
             var output = onnxModel.PostProcess(results, ref ratio, ref diff, inputMat.Width, inputMat.Height);
 
+            /* Crop된 이미지 기준으로 Inference한 좌표를 원본 좌표에 맞추기 */
+            onnxModel.FitOriginSize(ref output, baseX1, baseY1);
+
             /* 추가옵션(시각화) */
-            var dst = onnxModel.DrawOutput(ref croppedImg, output); 
+            var dst = onnxModel.DrawOutput(ref src, output); 
 
             Cv2.ImShow("dd", dst);
             Cv2.WaitKey();
@@ -52,14 +51,15 @@ namespace onnx_test
             //int fps = (int)(1000 / time);
         }
 
-        static Mat RunYoloDetect(OnnxYolo onnxModel, string imgPath)
+        static Mat RunYoloDetect(ref OnnxYolo onnxModel, ref Mat src, out int baseX1, out int baseY1)
         {
-            var inputMat = onnxModel.MakeInputMat(imgPath, out Mat src, out float ratio, out Point diff); 
+            var inputMat = onnxModel.MakeInputMat(ref src, out float ratio, out Point diff); 
             var results = onnxModel.ModelRun(ref inputMat);
             var output = onnxModel.PostProcess(results, ref ratio, ref diff, inputMat.Width, inputMat.Height);
 
-            if(output.Count == 0)
+            if (output.Count == 0)
             {
+                baseX1 = baseY1 = 0;
                 return src;
             }
 
@@ -67,7 +67,7 @@ namespace onnx_test
             int bestIdx = 0;
             for (int i=0; i<output.Count; i++)
             {
-                if (output[i][5] == 0 && output[i][4] > bestProb)
+                if (output[i][5] == 0 && output[i][4] > bestProb) // x1, y1, x2, y2, prob, clsidx
                 {
                     bestIdx = i;
                 }
@@ -78,10 +78,11 @@ namespace onnx_test
                 (int)output[bestIdx][0], 
                 (int)output[bestIdx][1], 
                 (int)output[bestIdx][2], 
-                (int)output[bestIdx][3]);
-
+                (int)output[bestIdx][3],
+                out baseX1, out baseY1);
             return dst;
         }
+
         static float CheckTime(int cnt, string onnxPath, string imgPath)
         {
             OnnxModel onnxModel = new OnnxMMpose(onnxPath, 192, 256);
