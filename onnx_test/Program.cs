@@ -15,7 +15,7 @@ namespace onnx_test
         [STAThread]
         static void Main()
        {
-            const string posePath = "C:\\Users\\Admin\\Documents\\hr.onnx";
+            const string posePath = "C:\\Users\\Admin\\Documents\\output.onnx";
             const string yoloPath = "C:\\Users\\Admin\\Documents\\640s_full.onnx";
             const string imgPath = "C:\\Users\\Admin\\Documents\\sdsdsd.jpg";
 
@@ -63,23 +63,25 @@ namespace onnx_test
                 return src;
             }
 
-            float bestProb = 0.0f;
-            int bestIdx = 0;
+            float[] bestProb = { 0.0f, 0.0f };
+            int[] bestIdx = { 0, 0 };
             for (int i=0; i<output.Count; i++)
             {
-                if (output[i][5] == 0 && output[i][4] > bestProb) // x1, y1, x2, y2, prob, clsidx
+                int curIdx = (int)output[i][5];
+                if (output[i][4] > bestProb[curIdx]) // x1, y1, x2, y2, prob, clsidx
                 {
-                    bestIdx = i;
+                    bestProb[curIdx] = output[i][4];
+                    bestIdx[curIdx] = i;
                 }
             }
 
+            int x1 = (int)Math.Min(output[bestIdx[0]][0], output[bestIdx[1]][0]);
+            int y1 = (int)Math.Min(output[bestIdx[0]][1], output[bestIdx[1]][1]);
+            int x2 = (int)Math.Max(output[bestIdx[0]][2], output[bestIdx[1]][2]);
+            int y2 = (int)Math.Max(output[bestIdx[0]][3], output[bestIdx[1]][3]);
+
             var dst = onnxModel.MakeObjectCroppedMat(
-                ref src,
-                (int)output[bestIdx][0], 
-                (int)output[bestIdx][1], 
-                (int)output[bestIdx][2], 
-                (int)output[bestIdx][3],
-                out baseX1, out baseY1);
+                ref src, x1, y1, x2, y2, out baseX1, out baseY1);
             return dst;
         }
 
