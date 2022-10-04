@@ -20,34 +20,28 @@ namespace onnx_test
          */
 
         // Member
-        private static readonly int[,] skeleton = new int[17, 5]
+        private static readonly int[,] skeleton = new int[16, 5]
         {
-            { 15, 13, 255, 128, 0 }, // Left Ankle - Left Knee
-            { 16, 14, 255, 128, 0 }, // Right Ankle - Right Knee
-            { 11, 13, 255, 0, 0 }, // Left Knee - Left Hip
-            { 12, 14, 255, 0, 0 }, // Right Knee - Right Hip
-            { 11, 12, 255, 255, 0 }, // Left Hip - Right Hip
-            { 5, 11, 0, 255, 0 }, // Left Shoulder - Left Hip
-            { 6, 12, 0, 255, 0 }, // Right Shoulder - Right Hip
-            { 5, 7, 0, 255, 255 }, // Left Shoulder - Left Elbow
-            { 6, 8, 0, 255, 255 }, // Right Shoulder - Right Elbow
-            { 9, 7, 255, 0, 255 }, // Left Wrist - Left Elbow
-            { 10, 8, 255, 0, 255 }, // Right Wrist - Right Elbow
-            { 5, 1, 128, 128, 255 }, // Left Shoulder - Head Bottom
-            { 6, 1, 128, 128, 255 }, // Right Shoulder - Head Bottom
-            { 0, 1, 128, 128, 128 }, // Nose - Head Bottom
-            { 0, 2, 128, 128, 128 }, // Nose - Head Top
-            { 0, 3, 0, 0, 128 }, // Nose - Left Ear
-            { 0, 4, 0, 0, 128 } // Nose - Right Ear
+            { 10, 8, 0, 255, 0 }, 
+            { 8, 6, 0, 255, 0 }, 
+            { 11, 9, 255, 128, 0 },
+            { 9, 7, 255, 128, 0 },
+            { 6, 7, 51, 153, 255 }, 
+            { 0, 6, 51, 153, 255 },
+            { 1, 7, 51, 153, 255 }, 
+            { 0, 1, 51, 153, 255 },
+            { 0, 2, 0, 255, 0 },
+            { 1, 3, 255, 128, 0 },
+            { 2, 4, 0, 255, 0 },
+            { 3, 5, 255, 128, 0 }, 
+            { 5, 12, 51, 153, 153 },
+            { 4, 12, 51, 153, 153 }, 
+            { 12, 13, 0, 0, 255 },
+            { 13, 14, 0, 255, 255 }
         };
         private enum KeyPoint
         {
-            Nose = 0,
-            HeadBottom,
-            HeadTop,
-            LeftEar,
-            RightEar,
-            LeftShoulder,
+            LeftShoulder=0,
             RightShoulder,
             LeftElbow,
             RightElbow,
@@ -58,7 +52,10 @@ namespace onnx_test
             LeftKnee,
             RightKnee,
             LeftAnkle,
-            RightAnkle
+            RightAnkle,
+            Grip,
+            Shaft,
+            ClubHead
         }
 
         // Constructor
